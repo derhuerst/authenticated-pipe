@@ -35,10 +35,12 @@ const verifier = (publicKey) => {
 	return verify
 }
 
-// todo: send this as a header
-const KEY_LENGTH = createKeyPair().publicKey.byteLength
-const SIGNATURE_LENGTH = signer(createKeyPair().privateKey)(Buffer.alloc(0)).byteLength
-const PAYLOAD_LENGTH = 1024 // todo: make customisable
+const uintToBuf = (x) => {
+	const buf = Buffer.alloc(2)
+	buf.writeUInt16LE(x)
+	return buf
+}
+const bufToUint = buf => buf.readUInt16LE()
 
 const createAuthenticatedReceiver = (verifyPeerPublicKey) => {
 	if ('function' !== typeof verifyPeerPublicKey) {
@@ -46,23 +48,33 @@ const createAuthenticatedReceiver = (verifyPeerPublicKey) => {
 	}
 
 	const buf = createBuffer()
-	let verify = null, signature = null
+	let peerPublicKeyLength = null, verify = null
+	let signatureLength = null, signature = null
+	let chunkSize = null
 
 	const verifyAndPush = (out, flush, cb) => {
 		while (true) {
+			if (signatureLength === null) {
+				// We expect the length of the coming signature.
+				const lBuf = buf.take(2)
+				if (!lBuf) break // We don't have enough data yet.
+				signatureLength = bufToUint(lBuf)
+			}
 			if (!signature) {
 				// We expect a signature for the coming data.
-				signature = buf.take(SIGNATURE_LENGTH)
+				signature = buf.take(signatureLength)
 				if (!signature) break // We don't have enough data yet.
 			}
 
 			// We expect data matching the received signature.
-			const bytesToTake = flush ? Math.min(buf.size(), PAYLOAD_LENGTH) : PAYLOAD_LENGTH
+			const bytesToTake = flush ? Math.min(buf.size(), chunkSize) : chunkSize
 			const payload = buf.take(bytesToTake)
 			if (!payload) break // We don't have enough data yet.
+
 			const isValid = verify(payload, signature)
+			signatureLength = null
+			signature = null
 			if (!isValid) return cb(new Error('invalid signature'))
-			signature = null // We used the signature.
 			out.push(payload)
 		}
 		cb()
@@ -72,10 +84,21 @@ const createAuthenticatedReceiver = (verifyPeerPublicKey) => {
 		const self = this
 		buf.put(data)
 
-		// Haven't received the peer public key yet, read it from the stream.
+		if (chunkSize === null) {
+			const lBuf = buf.take(2)
+			if (!lBuf) return cb()
+			chunkSize = bufToUint(lBuf)
+		}
+		if (peerPublicKeyLength === null) {
+			const lBuf = buf.take(2)
+			if (!lBuf) return cb()
+			peerPublicKeyLength = bufToUint(lBuf)
+		}
+
+		// Haven't received the peer public key yet.
 		if (!verify) {
-			if (buf.size() < KEY_LENGTH) return cb()
-			const peerPublicKey = buf.take(KEY_LENGTH)
+			const peerPublicKey = buf.take(peerPublicKeyLength)
+			if (!peerPublicKey) return cb()
 			verifyPeerPublicKey(peerPublicKey, (err, isValid) => {
 				if (err) return cb(err)
 				if (isValid !== true) return cb(new Error('peer public key is not valid'))
@@ -89,14 +112,13 @@ const createAuthenticatedReceiver = (verifyPeerPublicKey) => {
 	}
 
 	function flush (cb) {
-		// todo: throw if leftover data
 		verifyAndPush(this, true, cb)
 	}
 
 	return through2(transform, flush)
 }
 
-const createAuthenticatedSender = (keyPair = null, _signer = signer) => {
+const createAuthenticatedSender = (keyPair = null, chunkSize = 10 * 1024) => {
 	if (keyPair) {
 		if (!Buffer.isBuffer(keyPair.privateKey)) {
 			throw new Error('invalid/missing keyPair.privateKey')
@@ -106,27 +128,29 @@ const createAuthenticatedSender = (keyPair = null, _signer = signer) => {
 		}
 	}
 	const {privateKey, publicKey} = keyPair || createKeyPair()
-	const sign = _signer(privateKey)
+	const sign = signer(privateKey)
 
 	const buf = createBuffer()
-	let publicKeyWritten = false
+	let headerSent = false
 
 	const signAndSend = (out, payload) => {
-		if (!payload) return console.trace()
 		const signature = sign(payload)
+		out.push(uintToBuf(signature.byteLength))
 		out.push(signature)
 		out.push(payload)
 	}
 
 	function transform (data, _, cb) {
-		if (!publicKeyWritten) {
+		if (!headerSent) {
+			this.push(uintToBuf(chunkSize))
+			this.push(uintToBuf(publicKey.byteLength))
 			this.push(publicKey)
-			publicKeyWritten = true
+			headerSent = true
 		}
 
 		buf.put(data)
 		while (true) {
-			const payload = buf.take(PAYLOAD_LENGTH)
+			const payload = buf.take(chunkSize)
 			if (!payload) break; // We don't have enough data yet.
 			signAndSend(this, payload)
 		}

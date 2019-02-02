@@ -49,7 +49,7 @@ tape('signer, verifier', (t) => {
 
 tape('sender -> receiver', (t) => {
 	t.plan(2)
-	const data = randomBytes(10 * 1024 * 1024)
+	const data = randomBytes(11111)
 	const pair = createKeyPair()
 
 	const verifyPeerPublicKey = (key, cb) => {
