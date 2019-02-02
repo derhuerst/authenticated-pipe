@@ -1,7 +1,7 @@
 {
 	"name": "authenticated-pipe",
 	"description": "Make sure you receive data from the right person.",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"main": "index.js",
 	"bin": {
 		"auth-pipe": "./cli.js"
@@ -25,7 +25,7 @@
 	"bugs": "https://github.com/derhuerst/authenticated-pipe/issues",
 	"license": "ISC",
 	"engines": {
-		"node": ">=8"
+		"node": ">=10.12"
 	},
 	"dependencies": {
 		"base-emoji": "^2.0.1",
