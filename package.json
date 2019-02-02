@@ -5,6 +5,7 @@
 	"main": "index.js",
 	"files": [
 		"index.js",
+		"lib",
 		"example.js"
 	],
 	"keywords": [
@@ -22,6 +23,7 @@
 		"node": ">=8"
 	},
 	"dependencies": {
+		"through2": "^3.0.0"
 	},
 	"devDependencies": {
 	},
