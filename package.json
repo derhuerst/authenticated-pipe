@@ -30,6 +30,7 @@
 		"tape": "^4.9.2"
 	},
 	"scripts": {
+		"benchmark": "env NODE_ENV=production node benchmark.js",
 		"test": "env NODE_ENV=dev node test.js | tap-min",
 		"prepublishOnly": "npm test"
 	}
