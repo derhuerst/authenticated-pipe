@@ -2,6 +2,8 @@
 
 **Make sure you receive data from the right person.**
 
+*Note:* This library has *not* been cryptographically audited. Use it with a grain of salt.
+
 [![npm version](https://img.shields.io/npm/v/authenticated-pipe.svg)](https://www.npmjs.com/package/authenticated-pipe)
 [![build status](https://api.travis-ci.org/derhuerst/authenticated-pipe.svg?branch=master)](https://travis-ci.org/derhuerst/authenticated-pipe)
 ![ISC-licensed](https://img.shields.io/github/license/derhuerst/authenticated-pipe.svg)

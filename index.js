@@ -2,6 +2,7 @@
 
 const {generateKeyPairSync, createSign, createVerify} = require('crypto')
 const through2 = require('through2')
+const duplexer = require('duplexer3')
 const createBuffer = require('./lib/buffer')
 
 // from https://nodejs.org/api/crypto.html#crypto_class_sign
@@ -10,7 +11,7 @@ const createKeyPair = () => {
 	const pair = generateKeyPairSync('ec', {
 		namedCurve: 'sect239k1',
 		publicKeyEncoding: {type: 'spki', format: 'pem'},
-		privateKeyEncoding: {type: 'sec1', format: 'pem'}
+		privateKeyEncoding: {type: 'pkcs8', format: 'pem'}
 	})
 	return {
 		publicKey: Buffer.from(pair.publicKey, 'utf8'),
@@ -163,12 +164,19 @@ const createAuthenticatedSender = (keyPair = null, chunkSize = 10 * 1024) => {
 		cb()
 	}
 
-	return through2(transform, flush)
+	const out = through2(transform, flush)
+	out.publicKey = publicKey
+	return out
 }
 
-// todo: duplex
-module.exports = {
+const createAuthenticatedStream = (verifyPeerPublicKey, keyPair = null, chunkSize = 10 * 1024) => {
+	const sender = createAuthenticatedSender(keyPair, chunkSize)
+	const receiver = createAuthenticatedReceiver(verifyPeerPublicKey)
+	return duplexer(sender, receiver)
+}
+
+module.exports = Object.assign(createAuthenticatedStream, {
 	createKeyPair, signer, verifier,
 	createAuthenticatedReceiver,
 	createAuthenticatedSender
-}
+})

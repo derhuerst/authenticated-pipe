@@ -23,6 +23,7 @@
 		"node": ">=8"
 	},
 	"dependencies": {
+		"duplexer3": "^0.1.4",
 		"through2": "^3.0.0"
 	},
 	"devDependencies": {
