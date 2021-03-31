@@ -1,7 +1,7 @@
 {
 	"name": "authenticated-pipe",
 	"description": "Make sure you receive data from the right person.",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"main": "index.js",
 	"bin": {
 		"auth-pipe": "./cli.js"
@@ -31,7 +31,7 @@
 		"base-emoji": "^2.0.1",
 		"duplexer3": "^0.1.4",
 		"mri": "^1.1.4",
-		"through2": "^3.0.0"
+		"through2": "^4.0.2"
 	},
 	"devDependencies": {
 		"tap-min": "^2.0.0",

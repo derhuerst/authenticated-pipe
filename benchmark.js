@@ -8,7 +8,7 @@ const onError = (err) => {
 	process.exit(1)
 }
 
-const data = randomBytes(10 * 1024 * 1024) // 10 MB
+const data = randomBytes(100 * 1024 * 1024) // 100 MB
 const keyPair = createKeyPair()
 const verifyPeerPublicKey = (key, cb) => {
 	cb(null, Buffer.compare(keyPair.publicKey, key) === 0)
